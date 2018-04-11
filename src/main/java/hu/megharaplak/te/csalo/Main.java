@@ -43,7 +43,7 @@ public class Main {
 		for (File file : files) {
 			
 			String html = FileUtils.readFileToString(file, "UTF-8");
-			System.out.println("------------------" + file.getAbsolutePath() + "------------------");
+			System.out.println("------------------" + file.getAbsolutePath() + "-------------------");
 			Document doc = Jsoup.parse(html);
 			
 			// TODO find out what types of tables do we have, and how we can distinct them from the others
@@ -53,7 +53,7 @@ public class Main {
 			File resultFile = new File(outputFolder + "\\" +  FilenameUtils.removeExtension(file.getPath()).concat(".csv"));
 			FileUtils.touch(resultFile);
 			FileUtils.writeStringToFile(resultFile, parsedContent);
-			System.out.println("----------------END OF" + file.getAbsolutePath() + "--------------");
+			System.out.println("----------------END OF " + file.getAbsolutePath() + "--------------");
 			System.out.println("");
 			System.out.println("");
 			System.out.println("");
