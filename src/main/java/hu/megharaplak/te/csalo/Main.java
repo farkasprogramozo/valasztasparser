@@ -13,6 +13,7 @@ import org.apache.commons.io.FileUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 public class Main {
 
@@ -37,23 +38,26 @@ public class Main {
 			Document doc = Jsoup.parse(html);
 			Element ele = doc.body();
 			
-			String rawcontent = ele.toString().replace("&nbsp;", "");
-			System.out.println(rawcontent);
-			
 			// TODO content parse, define Object
-			// Object parsedContent = parse();
-			// System.out.println(parsedContent.toString());
+			Object parsedContent = parse(doc);
 		}
 	}
 
-	private static Object parse() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	private static String getRowByKeyword(String line, String key) {
-		if (line.contains(key)) {
-			return line.replaceAll("\\<[^>]*>","").replace(key, "");
+	private static Object parse(Document doc) {
+		Elements table = doc.select("table");
+		for (int i = 0; i < table.size(); i++) {
+			Elements rows = table.get(i).select("tr");
+			for (int j = 0; j < rows.size(); j++) {
+			    Element row = rows.get(j);
+			    Elements header = row.select("th");
+			    Elements cols = row.select("td");
+				for (int k = 0; k < cols.size(); k++) {
+				    System.out.println(cols.get(k).text());
+				}
+				for (int k = 0; k < header.size(); k++) {
+				    System.out.println(header.get(k).text());
+				}
+			}
 		}
 		return null;
 	}
