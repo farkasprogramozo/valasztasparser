@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -17,7 +18,9 @@ import org.jsoup.select.Elements;
 
 public class Main {
 
+	private static final String DELIMITER = ";";
 	private static final String BASEFOLDER = "valasztas.hu";
+	private static final String OUTPUTFOLDER = "output";
 
 	public static void main(String[] args) throws IOException {
 		List<Path> paths = Files.walk(Paths.get(BASEFOLDER))
@@ -31,35 +34,67 @@ public class Main {
 			files.add(path.toFile());
 		});
 		
+		File outputFolder = new File(OUTPUTFOLDER);
+		if (!outputFolder.exists()) {
+			outputFolder.mkdirs();
+		}
+
+		FileUtils.cleanDirectory(outputFolder);
 		for (File file : files) {
 			
 			String html = FileUtils.readFileToString(file, "UTF-8");
-			System.out.println("--------------------" + file.getAbsolutePath() + "------------------");
+			System.out.println("------------------" + file.getAbsolutePath() + "------------------");
 			Document doc = Jsoup.parse(html);
-			Element ele = doc.body();
 			
-			// TODO content parse, define Object
-			Object parsedContent = parse(doc);
+			// TODO find out what types of tables do we have, and how we can distinct them from the others
+			String parsedContent = parse(doc);
+			System.out.println(parsedContent);
+
+			File resultFile = new File(outputFolder + "\\" +  FilenameUtils.removeExtension(file.getPath()).concat(".csv"));
+			FileUtils.touch(resultFile);
+			FileUtils.writeStringToFile(resultFile, parsedContent);
+			System.out.println("----------------END OF" + file.getAbsolutePath() + "--------------");
+			System.out.println("");
+			System.out.println("");
+			System.out.println("");
 		}
 	}
 
-	private static Object parse(Document doc) {
+	private static String parse(Document doc) {
+		StringBuilder result = new StringBuilder();
 		Elements table = doc.select("table");
 		for (int i = 0; i < table.size(); i++) {
 			Elements rows = table.get(i).select("tr");
+			StringBuilder headerContent = new StringBuilder();
+			StringBuilder content = new StringBuilder();
+			
 			for (int j = 0; j < rows.size(); j++) {
 			    Element row = rows.get(j);
 			    Elements header = row.select("th");
 			    Elements cols = row.select("td");
-				for (int k = 0; k < cols.size(); k++) {
-				    System.out.println(cols.get(k).text());
-				}
-				for (int k = 0; k < header.size(); k++) {
-				    System.out.println(header.get(k).text());
-				}
+
+			    headerContent.append(getTableCols(header));
+			    content.append(getTableCols(cols));
 			}
+			result.append(headerContent);
+			result.append(content);
+			result.append(System.getProperty("line.separator"));
 		}
-		return null;
+		return result.toString();
+	}
+
+	private static String getTableCols(Elements cols) {
+		StringBuilder result = new StringBuilder();
+		for (int k = 0; k < cols.size(); k++) {
+			result.append(cols.get(k).text());
+		    if (k + 1 != cols.size()) {
+		    	result.append(DELIMITER);
+		    }
+		}
+		if (!cols.isEmpty()) {
+			result.append(System.getProperty("line.separator"));
+		}
+		return result.toString();
 	}
 
 }
