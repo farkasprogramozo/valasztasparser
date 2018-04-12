@@ -74,6 +74,20 @@ public class Main {
 			FileUtils.writeStringToFile(resultFile, parsedContent, ConstantHelper.ENCODING);
 		}
 
+		System.out.println("Fixing differences...");
+
+		for (Entry<String, SumOfVoters> entry : sumOfSubstantiveVotersTables.entrySet()) {
+			SumOfVoters sumOfVoters = entry.getValue();
+			sumOfVoters.setDifferenceBetweenVotersAndStamped(sumOfVoters.getStamped() - sumOfVoters.getVoted());
+		}
+
+		for (Entry<String, List<SumOfVoters>> entry : sumOfListVotersTables.entrySet()) {
+			List<SumOfVoters> sumOfVotersList = entry.getValue();
+			for (SumOfVoters sumOfVoters : sumOfVotersList) {
+				sumOfVoters.setDifferenceBetweenVotersAndStamped(sumOfVoters.getStamped() - sumOfVoters.getVoted());
+			}
+		}
+
 		System.out.println("Generating reports...");
 		
 		// sum report of substantive votes
@@ -236,21 +250,18 @@ public class Main {
 				String contentAsString = content.toString();
 				int noStamper = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
 				int stamped = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", ""));
-				int differenceBetweenVotersAndStamped = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", ""));
 				int invalid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", ""));
 				int valid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), ""));
 				
 				if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
 					sumOfListVoters.setNoStamper(noStamper);
 					sumOfListVoters.setStamped(stamped);
-					sumOfListVoters.setDifferenceBetweenVotersAndStamped(differenceBetweenVotersAndStamped);
 					sumOfListVoters.setInvalid(invalid);
 					sumOfListVoters.setValid(valid);
 					sumOfSubstantiveVotersTables.put(filePath, sumOfListVoters);
 				} else {
 					sumOfSubstantiveVotersTables.get(filePath).setNoStamper(noStamper);
 					sumOfSubstantiveVotersTables.get(filePath).setStamped(stamped);
-					sumOfSubstantiveVotersTables.get(filePath).setDifferenceBetweenVotersAndStamped(differenceBetweenVotersAndStamped);
 					sumOfSubstantiveVotersTables.get(filePath).setInvalid(invalid);
 					sumOfSubstantiveVotersTables.get(filePath).setValid(valid);
 				}
@@ -281,7 +292,6 @@ public class Main {
 					sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
 					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
 					sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
-					sumOfListVoters.setDifferenceBetweenVotersAndStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[5].replaceAll(" ", "").replaceAll("-", "0")));
 					sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
 					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "")));
 					sumOfListVotersList.add(sumOfListVoters);
@@ -313,7 +323,6 @@ public class Main {
 						sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
 						sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
 						sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
-						sumOfListVoters.setDifferenceBetweenVotersAndStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[5].replaceAll(" ", "")));
 						sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "")));
 						sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
 						sumOfGentilitialListVotersTables.put(filePath, sumOfListVoters);
