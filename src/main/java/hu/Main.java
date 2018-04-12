@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedMap;
@@ -126,17 +128,49 @@ public class Main {
 		
 		// sum report of party votes
 		File partyVotesFile = new File(outputFolder + "\\" + "listas_szavazatok.csv");
+		File partyVotesOrderedFile = new File(outputFolder + "\\" + "listas_szavazatok_rendezett.csv");
 		FileUtils.touch(partyVotesFile);
+		FileUtils.touch(partyVotesOrderedFile);
 		// header			
-		FileUtils.writeStringToFile(partyVotesFile, "ID" + ConstantHelper.DELIMITER
-				+ "A pártlista neve" + ConstantHelper.DELIMITER
-				+ "Szavazat" + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+		StringBuilder header = new StringBuilder("ID" + ConstantHelper.DELIMITER);
+		for(int i = 0; i <= 23; i++) {
+			header.append("A pártlista neve" + ConstantHelper.DELIMITER	+ "Szavazat");
+			if (i == 23) {
+				header.append(ConstantHelper.LINESEPARATOR);
+			} else {
+				header.append(ConstantHelper.DELIMITER);				
+			}
+		}
+		FileUtils.writeStringToFile(partyVotesFile, header.toString(), ConstantHelper.ENCODING, true);		
+		FileUtils.writeStringToFile(partyVotesOrderedFile, header.toString(), ConstantHelper.ENCODING, true);
 		for (Entry<String, List<PartyVote>> entry : partyVotesTables.entrySet()) {
 			StringBuilder sb = new StringBuilder();
-			for (PartyVote partyVote: entry.getValue()) {
+			
+			for (int i = 0; i < entry.getValue().size(); i++) {
+				PartyVote partyVote = entry.getValue().get(i);
 				sb.append(partyVote.toString());
+				if (i + 1 != entry.getValue().size()) {
+					sb.append(ConstantHelper.DELIMITER);
+				}
 			}
-			FileUtils.writeStringToFile(partyVotesFile, entry.getKey() + ConstantHelper.DELIMITER + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			FileUtils.writeStringToFile(partyVotesFile, entry.getKey() + ConstantHelper.DELIMITER + sb.toString() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			
+			Collections.sort(entry.getValue(), new Comparator<PartyVote>() {
+				@Override
+				public int compare(PartyVote o1, PartyVote o2) {
+					return o2.votes.compareTo(o1.votes);
+				}
+			});
+			
+			StringBuilder sbOfOrdered = new StringBuilder();
+			for (int i = 0; i < entry.getValue().size(); i++) {
+				PartyVote partyVote = entry.getValue().get(i);
+				sbOfOrdered.append(partyVote.toString());
+				if (i + 1 != entry.getValue().size()) {
+					sbOfOrdered.append(ConstantHelper.DELIMITER);
+				}
+			}
+			FileUtils.writeStringToFile(partyVotesOrderedFile, entry.getKey() + ConstantHelper.DELIMITER + sbOfOrdered.toString() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		}
 		
 		
@@ -286,9 +320,7 @@ public class Main {
 					}
 				}
 			}
-			
-			
-			
+
 			result.append(headerContent);
 			result.append(content);
 			result.append(ConstantHelper.LINESEPARATOR);
