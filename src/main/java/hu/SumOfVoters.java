@@ -2,9 +2,19 @@ package hu;
 
 public class SumOfVoters extends SumOfSubstantiveVoters {
 
+	String voteType;
 	Integer registratedVoters;
 	Integer voted;
 	
+	
+	public String getVoteType() {
+		return voteType;
+	}
+
+	public void setVoteType(String voteType) {
+		this.voteType = voteType;
+	}
+
 	public Integer getRegistratedVoters() {
 		return registratedVoters;
 	}
@@ -23,7 +33,7 @@ public class SumOfVoters extends SumOfSubstantiveVoters {
 	
 	@Override
 	public String toString() {
-		return registratedVoters + ConstantHelper.DELIMITER + voted + ConstantHelper.DELIMITER 
+		return voteType + ConstantHelper.DELIMITER + registratedVoters + ConstantHelper.DELIMITER + voted + ConstantHelper.DELIMITER 
 				+ noStamper + ConstantHelper.DELIMITER + stamped + ConstantHelper.DELIMITER 
 				+ differenceBetweenVotersAndStamped + ConstantHelper.DELIMITER + invalid + ConstantHelper.DELIMITER + valid;
 	}

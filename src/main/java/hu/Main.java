@@ -72,6 +72,7 @@ public class Main {
 			FileUtils.writeStringToFile(resultFile, parsedContent, ConstantHelper.ENCODING);
 		}
 
+		System.out.println("Generating reports...");
 		
 		// sum report of substantive votes
 		File substantiveVotersFile = new File(outputFolder + "\\" + "egyeni_osszes.csv");
@@ -93,13 +94,14 @@ public class Main {
 		// sum report of candidate votes
 		File candidateVotesFile = new File(outputFolder + "\\" + "egyeni_szavazatok.csv");
 		FileUtils.touch(candidateVotesFile);
-		// header			
-		FileUtils.writeStringToFile(candidateVotesFile, "ID" + ConstantHelper.DELIMITER
-				+ "A jelölt neve" + ConstantHelper.DELIMITER 
-				+ "Jelölõ szervezet(ek)" + ConstantHelper.DELIMITER
-				+ "Kapott érvényes szavazat" + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		for (Entry<String, CandidateVotes> entry : candidateVotesTables.entrySet()) {
-			FileUtils.writeStringToFile(candidateVotesFile, entry.getKey() + ConstantHelper.LINESEPARATOR + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			FileUtils.writeStringToFile(candidateVotesFile, entry.getKey() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			// header			
+			FileUtils.writeStringToFile(candidateVotesFile, "ID" + ConstantHelper.DELIMITER
+					+ "A jelölt neve" + ConstantHelper.DELIMITER 
+					+ "Jelölõ szervezet(ek)" + ConstantHelper.DELIMITER
+					+ "Kapott érvényes szavazat" + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			FileUtils.writeStringToFile(candidateVotesFile, entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		}
 		
 		// sum report of substantive votes
@@ -107,6 +109,7 @@ public class Main {
 		FileUtils.touch(listVotersFile);
 		// header			
 		FileUtils.writeStringToFile(listVotersFile, "ID" + ConstantHelper.DELIMITER
+				+ "Tipus" + ConstantHelper.DELIMITER
 				+ "A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma" + ConstantHelper.DELIMITER
 				+ "Szavazóként megjelent választópolgárok száma" + ConstantHelper.DELIMITER
 				+ "Urnában lévõ, bélyegzõlenyomat nélküli szavazólapok száma" + ConstantHelper.DELIMITER
@@ -115,7 +118,9 @@ public class Main {
 				+ "Érvénytelen szavazólapok száma" + ConstantHelper.DELIMITER
 				+ "Érvényes szavazólapok száma"	+ ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		for (Entry<String, List<SumOfVoters>> entry : sumOfListVotersTables.entrySet()) {
-			FileUtils.writeStringToFile(listVotersFile, entry.getKey() + ConstantHelper.LINESEPARATOR + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			for (SumOfVoters sumOfVoters: entry.getValue()) {
+				FileUtils.writeStringToFile(listVotersFile, entry.getKey() + ConstantHelper.DELIMITER + sumOfVoters.toString() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			}			
 		}
 
 		
@@ -127,7 +132,11 @@ public class Main {
 				+ "A pártlista neve" + ConstantHelper.DELIMITER
 				+ "Szavazat" + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		for (Entry<String, List<PartyVote>> entry : partyVotesTables.entrySet()) {
-			FileUtils.writeStringToFile(partyVotesFile, entry.getKey() + ConstantHelper.LINESEPARATOR + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			StringBuilder sb = new StringBuilder();
+			for (PartyVote partyVote: entry.getValue()) {
+				sb.append(partyVote.toString());
+			}
+			FileUtils.writeStringToFile(partyVotesFile, entry.getKey() + ConstantHelper.DELIMITER + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		}
 		
 		
@@ -136,6 +145,7 @@ public class Main {
 		FileUtils.touch(gentilitialListVotersFile);
 		// header			
 		FileUtils.writeStringToFile(gentilitialListVotersFile, "ID" + ConstantHelper.DELIMITER
+				+ "Tipus" + ConstantHelper.DELIMITER
 				+ "A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma" + ConstantHelper.DELIMITER
 				+ "Szavazóként megjelent választópolgárok száma" + ConstantHelper.DELIMITER
 				+ "Urnában lévõ, bélyegzõlenyomat nélküli szavazólapok száma" + ConstantHelper.DELIMITER
@@ -144,7 +154,7 @@ public class Main {
 				+ "Érvénytelen szavazólapok száma" + ConstantHelper.DELIMITER
 				+ "Érvényes szavazólapok száma"	+ ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		for (Entry<String, SumOfVoters> entry : sumOfGentilitialListVotersTables.entrySet()) {
-			FileUtils.writeStringToFile(gentilitialListVotersFile, entry.getKey() + ConstantHelper.LINESEPARATOR + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+			FileUtils.writeStringToFile(gentilitialListVotersFile, entry.getKey() + ConstantHelper.DELIMITER + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		}
 
 
@@ -232,6 +242,7 @@ public class Main {
 				String[] contentAsRows = content.toString().split("\\r?\\n");				
 				for (String contentAsString : contentAsRows) {
 					SumOfVoters sumOfListVoters = new SumOfVoters();
+					sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
 					sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
 					sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
 					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
@@ -263,6 +274,7 @@ public class Main {
 				String[] contentAsRows = content.toString().split("\\r?\\n");
 				for (String contentAsString : contentAsRows) {
 					if (contentAsString != null && !"".equals(contentAsString)) {
+						sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
 						sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
 						sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
 						sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
