@@ -113,8 +113,7 @@ public class Main {
 		for (Entry<String, CandidateVotes> entry : candidateVotesTables.entrySet()) {
 			FileUtils.writeStringToFile(candidateVotesFile, entry.getKey() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 			// header			
-			FileUtils.writeStringToFile(candidateVotesFile, "ID" + ConstantHelper.DELIMITER
-					+ "A jelölt neve" + ConstantHelper.DELIMITER 
+			FileUtils.writeStringToFile(candidateVotesFile, "A jelölt neve" + ConstantHelper.DELIMITER 
 					+ "Jelölõ szervezet(ek)" + ConstantHelper.DELIMITER
 					+ "Kapott érvényes szavazat" + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 			FileUtils.writeStringToFile(candidateVotesFile, entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
@@ -209,6 +208,7 @@ public class Main {
 	}
 
 	private static String parse(String filePath, Document doc) {
+		boolean hasVotersFromAnotherArea = doc.toString().contains("Átjelentkezett választópolgárok");
 		StringBuilder result = new StringBuilder();
 		Elements table = doc.select("table");
 		for (int i = 0; i < table.size(); i++) {
@@ -225,109 +225,10 @@ public class Main {
 			    content.append(getTableCols(cols));
 			}
 
-			
-			// TABLE 1: Jegyzékbe vett szavazók 
-			if (i == 1 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében szereplõ választópolgárok száma")) {
-				SumOfVoters registratedVoterTable = new SumOfVoters();
-				String contentAsString = content.toString();
-				int registratedVoters = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
-				int voted = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].split(" ")[0]);
-
-				if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
-					registratedVoterTable.setRegistratedVoters(registratedVoters);
-					registratedVoterTable.setVoted(voted);
-					sumOfSubstantiveVotersTables.put(filePath, registratedVoterTable);
-				} else {
-					sumOfSubstantiveVotersTables.get(filePath).setRegistratedVoters(registratedVoters);
-					sumOfSubstantiveVotersTables.get(filePath).setVoted(voted);
-				}
-			}
-			
-			// merge with table 1 as it is the same as table 4 and 6
-			// TABLE 2: Egyéni szavazólapok 
-			if (i == 2 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("Urnában lévõ, bélyegzõlenyomat nélküli szavazólapok száma")) {
-				SumOfVoters sumOfListVoters = new SumOfVoters();
-				String contentAsString = content.toString();
-				int noStamper = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
-				int stamped = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", ""));
-				int invalid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", ""));
-				int valid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), ""));
-				
-				if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
-					sumOfListVoters.setNoStamper(noStamper);
-					sumOfListVoters.setStamped(stamped);
-					sumOfListVoters.setInvalid(invalid);
-					sumOfListVoters.setValid(valid);
-					sumOfSubstantiveVotersTables.put(filePath, sumOfListVoters);
-				} else {
-					sumOfSubstantiveVotersTables.get(filePath).setNoStamper(noStamper);
-					sumOfSubstantiveVotersTables.get(filePath).setStamped(stamped);
-					sumOfSubstantiveVotersTables.get(filePath).setInvalid(invalid);
-					sumOfSubstantiveVotersTables.get(filePath).setValid(valid);
-				}
-			}
-			
-			// TABLE 3: Egyéni szavazatok
-			if (i == 3 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A jelölt neve")) {
-				CandidateVotes candidateVotes = new CandidateVotes();
-				String[] contentAsRows = content.toString().split("\\r?\\n");
-				for (String contentAsString : contentAsRows) {
-					CandidateVote vote = new CandidateVote();
-					vote.setCandidateName(contentAsString.split(ConstantHelper.DELIMITER)[1]);
-					vote.setPartyOfCandidate(contentAsString.split(ConstantHelper.DELIMITER)[2]);
-					vote.setVotes(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
-					candidateVotes.add(vote);
-				}
-				candidateVotesTables.put(filePath, candidateVotes);
-			}
-			
-			// TABLE 4: Listás szavazólapok
-			if (i == 4 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
-				List<SumOfVoters> sumOfListVotersList = new ArrayList<>();
-				String[] contentAsRows = content.toString().split("\\r?\\n");				
-				for (String contentAsString : contentAsRows) {
-					SumOfVoters sumOfListVoters = new SumOfVoters();
-					sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
-					sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
-					sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
-					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
-					sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
-					sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
-					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "")));
-					sumOfListVotersList.add(sumOfListVoters);
-				}
-				sumOfListVotersTables.put(filePath, sumOfListVotersList);
-			}
-			
-			// TABLE 5: Listás szavazatok
-			if (i == 5 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A pártlista neve")) {
-				List<PartyVote> partyVoteList = new ArrayList<>();
-				String[] contentAsRows = content.toString().split("\\r?\\n");
-				for (String contentAsString : contentAsRows) {
-					PartyVote vote = new PartyVote();
-					vote.setParty(contentAsString.split(ConstantHelper.DELIMITER)[1]);
-					vote.setVotes(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
-					partyVoteList.add(vote);
-				}
-				partyVotesTables.put(filePath, partyVoteList);
-			}
-			
-			// TABLE 6: Nemzetiségi listák adatai
-			if (i == 6 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
-				SumOfVoters sumOfListVoters = new SumOfVoters();
-				String[] contentAsRows = content.toString().split("\\r?\\n");
-				for (String contentAsString : contentAsRows) {
-					if (contentAsString != null && !"".equals(contentAsString)) {
-						sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
-						sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
-						sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
-						sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
-						sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
-						sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "")));
-						sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
-						sumOfGentilitialListVotersTables.put(filePath, sumOfListVoters);
-					}
-				}
+			if (hasVotersFromAnotherArea) {
+				parseTableWithVotersFromAnotherArea(filePath, i, headerContent, content);
+			} else {
+				parseTable(filePath, i, headerContent, content);
 			}
 
 			result.append(headerContent);
@@ -335,6 +236,220 @@ public class Main {
 			result.append(ConstantHelper.LINESEPARATOR);
 		}
 		return result.toString();
+	}
+
+	private static void parseTableWithVotersFromAnotherArea(String filePath, int i, StringBuilder headerContent, StringBuilder content) {
+		// TABLE 1: Jegyzékbe vett szavazók 
+		if (i == 2 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében szereplõ választópolgárok száma")) {
+			SumOfVoters registratedVoterTable = new SumOfVoters();
+			String contentAsString = content.toString();
+			int registratedVoters = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+			int voted = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].split(" ")[0]);
+
+			if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
+				registratedVoterTable.setRegistratedVoters(registratedVoters);
+				registratedVoterTable.setVoted(voted);
+				sumOfSubstantiveVotersTables.put(filePath, registratedVoterTable);
+			} else {
+				sumOfSubstantiveVotersTables.get(filePath).setRegistratedVoters(registratedVoters);
+				sumOfSubstantiveVotersTables.get(filePath).setVoted(voted);
+			}
+		}
+		
+		// TODO voters from another area
+		
+		// merge with table 1 as it is the same as table 4 and 6
+		// TABLE 2: Egyéni szavazólapok 
+		if (i == 4 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("Urnában lévõ, bélyegzõlenyomat nélküli szavazólapok száma")) {
+			SumOfVoters sumOfListVoters = new SumOfVoters();
+			String contentAsString = content.toString();
+			int noStamper = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+			int stamped = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", ""));
+			int invalid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", ""));
+			int valid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), ""));
+			
+			if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
+				sumOfListVoters.setNoStamper(noStamper);
+				sumOfListVoters.setStamped(stamped);
+				sumOfListVoters.setInvalid(invalid);
+				sumOfListVoters.setValid(valid);
+				sumOfSubstantiveVotersTables.put(filePath, sumOfListVoters);
+			} else {
+				sumOfSubstantiveVotersTables.get(filePath).setNoStamper(noStamper);
+				sumOfSubstantiveVotersTables.get(filePath).setStamped(stamped);
+				sumOfSubstantiveVotersTables.get(filePath).setInvalid(invalid);
+				sumOfSubstantiveVotersTables.get(filePath).setValid(valid);
+			}
+		}
+		
+		// TABLE 3: Egyéni szavazatok
+		if (i == 5 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A jelölt neve")) {
+			CandidateVotes candidateVotes = new CandidateVotes();
+			String[] contentAsRows = content.toString().split("\\r?\\n");
+			for (String contentAsString : contentAsRows) {
+				CandidateVote vote = new CandidateVote();
+				vote.setCandidateName(contentAsString.split(ConstantHelper.DELIMITER)[1]);
+				vote.setPartyOfCandidate(contentAsString.split(ConstantHelper.DELIMITER)[2]);
+				vote.setVotes(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
+				candidateVotes.add(vote);
+			}
+			candidateVotesTables.put(filePath, candidateVotes);
+		}
+		
+		// TABLE 4: Listás szavazólapok
+		if (i == 7 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
+			List<SumOfVoters> sumOfListVotersList = new ArrayList<>();
+			String[] contentAsRows = content.toString().split("\\r?\\n");				
+			for (String contentAsString : contentAsRows) {
+				SumOfVoters sumOfListVoters = new SumOfVoters();
+				sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+				sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
+				sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
+				sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
+				sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
+				sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
+				sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "")));
+				sumOfListVotersList.add(sumOfListVoters);
+			}
+			sumOfListVotersTables.put(filePath, sumOfListVotersList);
+		}
+		
+		// TABLE 5: Listás szavazatok
+		if (i == 8 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A pártlista neve")) {
+			List<PartyVote> partyVoteList = new ArrayList<>();
+			String[] contentAsRows = content.toString().split("\\r?\\n");
+			for (String contentAsString : contentAsRows) {
+				PartyVote vote = new PartyVote();
+				vote.setParty(contentAsString.split(ConstantHelper.DELIMITER)[1]);
+				vote.setVotes(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
+				partyVoteList.add(vote);
+			}
+			partyVotesTables.put(filePath, partyVoteList);
+		}
+		
+		// TABLE 8: Nemzetiségi listák adatai
+		if (i == 9 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
+			SumOfVoters sumOfListVoters = new SumOfVoters();
+			String[] contentAsRows = content.toString().split("\\r?\\n");
+			for (String contentAsString : contentAsRows) {
+				if (contentAsString != null && !"".equals(contentAsString)) {
+					sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+					sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
+					sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
+					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
+					sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
+					sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
+					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll("-", "").replaceAll(System.getProperty("line.separator"), "")));
+					sumOfGentilitialListVotersTables.put(filePath, sumOfListVoters);
+				}
+			}
+		}
+	}
+
+	private static void parseTable(String filePath, int i, StringBuilder headerContent, StringBuilder content) {
+		// TABLE 1: Jegyzékbe vett szavazók 
+		if (i == 2 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében szereplõ választópolgárok száma")) {
+			SumOfVoters registratedVoterTable = new SumOfVoters();
+			String contentAsString = content.toString();
+			int registratedVoters = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+			int voted = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].split(" ")[0]);
+
+			if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
+				registratedVoterTable.setRegistratedVoters(registratedVoters);
+				registratedVoterTable.setVoted(voted);
+				sumOfSubstantiveVotersTables.put(filePath, registratedVoterTable);
+			} else {
+				sumOfSubstantiveVotersTables.get(filePath).setRegistratedVoters(registratedVoters);
+				sumOfSubstantiveVotersTables.get(filePath).setVoted(voted);
+			}
+		}
+		
+		// merge with table 1 as it is the same as table 4 and 6
+		// TABLE 2: Egyéni szavazólapok 
+		if (i == 3 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("Urnában lévõ, bélyegzõlenyomat nélküli szavazólapok száma")) {
+			SumOfVoters sumOfListVoters = new SumOfVoters();
+			String contentAsString = content.toString();
+			int noStamper = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+			int stamped = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", ""));
+			int invalid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", ""));
+			int valid = Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), ""));
+			
+			if (!sumOfSubstantiveVotersTables.containsKey(filePath)) {				
+				sumOfListVoters.setNoStamper(noStamper);
+				sumOfListVoters.setStamped(stamped);
+				sumOfListVoters.setInvalid(invalid);
+				sumOfListVoters.setValid(valid);
+				sumOfSubstantiveVotersTables.put(filePath, sumOfListVoters);
+			} else {
+				sumOfSubstantiveVotersTables.get(filePath).setNoStamper(noStamper);
+				sumOfSubstantiveVotersTables.get(filePath).setStamped(stamped);
+				sumOfSubstantiveVotersTables.get(filePath).setInvalid(invalid);
+				sumOfSubstantiveVotersTables.get(filePath).setValid(valid);
+			}
+		}
+		
+		// TABLE 3: Egyéni szavazatok
+		if (i == 4 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A jelölt neve")) {
+			CandidateVotes candidateVotes = new CandidateVotes();
+			String[] contentAsRows = content.toString().split("\\r?\\n");
+			for (String contentAsString : contentAsRows) {
+				CandidateVote vote = new CandidateVote();
+				vote.setCandidateName(contentAsString.split(ConstantHelper.DELIMITER)[1]);
+				vote.setPartyOfCandidate(contentAsString.split(ConstantHelper.DELIMITER)[2]);
+				vote.setVotes(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
+				candidateVotes.add(vote);
+			}
+			candidateVotesTables.put(filePath, candidateVotes);
+		}
+		
+		// TABLE 4: Listás szavazólapok
+		if (i == 6 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
+			List<SumOfVoters> sumOfListVotersList = new ArrayList<>();
+			String[] contentAsRows = content.toString().split("\\r?\\n");				
+			for (String contentAsString : contentAsRows) {
+				SumOfVoters sumOfListVoters = new SumOfVoters();
+				sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+				sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
+				sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
+				sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
+				sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
+				sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
+				sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "")));
+				sumOfListVotersList.add(sumOfListVoters);
+			}
+			sumOfListVotersTables.put(filePath, sumOfListVotersList);
+		}
+		
+		// TABLE 5: Listás szavazatok
+		if (i == 7 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A pártlista neve")) {
+			List<PartyVote> partyVoteList = new ArrayList<>();
+			String[] contentAsRows = content.toString().split("\\r?\\n");
+			for (String contentAsString : contentAsRows) {
+				PartyVote vote = new PartyVote();
+				vote.setParty(contentAsString.split(ConstantHelper.DELIMITER)[1]);
+				vote.setVotes(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "").replaceAll(System.getProperty("line.separator"), "")));
+				partyVoteList.add(vote);
+			}
+			partyVotesTables.put(filePath, partyVoteList);
+		}
+		
+		// TABLE 8: Nemzetiségi listák adatai
+		if (i == 6 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
+			SumOfVoters sumOfListVoters = new SumOfVoters();
+			String[] contentAsRows = content.toString().split("\\r?\\n");
+			for (String contentAsString : contentAsRows) {
+				if (contentAsString != null && !"".equals(contentAsString)) {
+					sumOfListVoters.setVoteType(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", ""));
+					sumOfListVoters.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].replaceAll(" ", "")));
+					sumOfListVoters.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[2].replaceAll(" ", "")));
+					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
+					sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
+					sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
+					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll("-", "").replaceAll(System.getProperty("line.separator"), "")));
+					sumOfGentilitialListVotersTables.put(filePath, sumOfListVoters);
+				}
+			}
+		}
 	}
 
 	private static String getTableCols(Elements cols) {
