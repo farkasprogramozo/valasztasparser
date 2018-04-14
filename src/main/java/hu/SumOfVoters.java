@@ -33,9 +33,14 @@ public class SumOfVoters extends SumOfSubstantiveVoters {
 	
 	@Override
 	public String toString() {
-		return voteType + ConstantHelper.DELIMITER + registratedVoters + ConstantHelper.DELIMITER + voted + ConstantHelper.DELIMITER 
+		String result = "";
+		if (voteType != null && !"".equals(voteType)) {
+			result = result.concat(voteType + ConstantHelper.DELIMITER);
+		}
+		result = result.concat(registratedVoters + ConstantHelper.DELIMITER + voted + ConstantHelper.DELIMITER 
 				+ noStamper + ConstantHelper.DELIMITER + stamped + ConstantHelper.DELIMITER 
-				+ differenceBetweenVotersAndStamped + ConstantHelper.DELIMITER + invalid + ConstantHelper.DELIMITER + valid;
+				+ differenceBetweenVotersAndStamped + ConstantHelper.DELIMITER + invalid + ConstantHelper.DELIMITER + valid);
+		return result;
 	}
 	
 }

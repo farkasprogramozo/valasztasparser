@@ -23,11 +23,13 @@ import org.jsoup.select.Elements;
 
 public class Main {
 	
+	private static final boolean WRITE_PARSED_RESULT_INTO_FILE = false;
 	// TABLE 1 && 2 merged
 	private static SortedMap<String, SumOfVoters> sumOfSubstantiveVotersTables = new TreeMap<>();
-	
+	private static SortedMap<String, SumOfVoters> sumOfSubstantiveVotersFromAnotherAreaTables = new TreeMap<>();	
 	private static SortedMap<String, CandidateVotes> candidateVotesTables = new TreeMap<>();	
 	private static SortedMap<String, List<SumOfVoters>> sumOfListVotersTables = new TreeMap<>();
+	private static SortedMap<String, SumOfVoters> sumOfListVotersFromAnotherAreaTables = new TreeMap<>();
 	private static SortedMap<String, List<PartyVote>> partyVotesTables = new TreeMap<>();
 	private static SortedMap<String, SumOfVoters> sumOfGentilitialListVotersTables = new TreeMap<>();
 
@@ -69,9 +71,11 @@ public class Main {
 			Document doc = Jsoup.parse(html);			
 			String parsedContent = parse(evkFile.getPath(), doc);		
 			
-			File resultFile = new File(outputFolder + "\\" +  FilenameUtils.removeExtension(evkFile.getPath()).concat(".csv"));
-			FileUtils.touch(resultFile);
-			FileUtils.writeStringToFile(resultFile, parsedContent, ConstantHelper.ENCODING);
+			if (WRITE_PARSED_RESULT_INTO_FILE) {
+				File resultFile = new File(outputFolder + "\\" +  FilenameUtils.removeExtension(evkFile.getPath()).concat(".csv"));
+				FileUtils.touch(resultFile);
+				FileUtils.writeStringToFile(resultFile, parsedContent, ConstantHelper.ENCODING);
+			}
 		}
 
 		System.out.println("Fixing differences...");
@@ -86,6 +90,11 @@ public class Main {
 			for (SumOfVoters sumOfVoters : sumOfVotersList) {
 				sumOfVoters.setDifferenceBetweenVotersAndStamped(sumOfVoters.getStamped() - sumOfVoters.getVoted());
 			}
+		}
+
+		for (Entry<String, SumOfVoters> entry : sumOfGentilitialListVotersTables.entrySet()) {
+			SumOfVoters sumOfVoters = entry.getValue();
+			sumOfVoters.setDifferenceBetweenVotersAndStamped(sumOfVoters.getStamped() - sumOfVoters.getVoted());
 		}
 
 		System.out.println("Generating reports...");
@@ -203,7 +212,30 @@ public class Main {
 		for (Entry<String, SumOfVoters> entry : sumOfGentilitialListVotersTables.entrySet()) {
 			FileUtils.writeStringToFile(gentilitialListVotersFile, entry.getKey() + ConstantHelper.DELIMITER + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
 		}
+		
 
+		// sum report of candidate votes with voters another area
+		File candidateVotersFromAnotherAreaFile = new File(outputFolder + "\\" + "egyeni_atjelentkezett.csv");
+		FileUtils.touch(candidateVotersFromAnotherAreaFile);
+		// header			
+		FileUtils.writeStringToFile(candidateVotersFromAnotherAreaFile, "ID" + ConstantHelper.DELIMITER
+				+ "Az átjelentkezett választópolgárok névjegyzékében és a mozgóurnát igénylõ átjelentkezett választópolgárok jegyzékében szereplõ választópolgárok száma" + ConstantHelper.DELIMITER
+				+ "Átjelentkezéssel szavazóként megjelent választópolgárok száma"	+ ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+		for (Entry<String, SumOfVoters> entry : sumOfSubstantiveVotersFromAnotherAreaTables.entrySet()) {
+			FileUtils.writeStringToFile(candidateVotersFromAnotherAreaFile, entry.getKey() + ConstantHelper.DELIMITER + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+		}
+		
+		
+		// sum report of party votes with voters another area
+		File partyVotersFromAnotherAreaFile = new File(outputFolder + "\\" + "egyeni_atjelentkezett.csv");
+		FileUtils.touch(partyVotersFromAnotherAreaFile);
+		// header			
+		FileUtils.writeStringToFile(partyVotersFromAnotherAreaFile, "ID" + ConstantHelper.DELIMITER
+				+ "Az átjelentkezett választópolgárok névjegyzékében és a mozgóurnát igénylõ átjelentkezett választópolgárok jegyzékében szereplõ választópolgárok száma" + ConstantHelper.DELIMITER
+				+ "Átjelentkezéssel szavazóként megjelent választópolgárok száma"	+ ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+		for (Entry<String, SumOfVoters> entry : sumOfListVotersFromAnotherAreaTables.entrySet()) {
+			FileUtils.writeStringToFile(partyVotersFromAnotherAreaFile, entry.getKey() + ConstantHelper.DELIMITER + entry.getValue() + ConstantHelper.LINESEPARATOR, ConstantHelper.ENCODING, true);
+		}
 
 	}
 
@@ -235,6 +267,21 @@ public class Main {
 			result.append(content);
 			result.append(ConstantHelper.LINESEPARATOR);
 		}
+		
+		return result.toString();
+	}
+
+	private static String getTableCols(Elements cols) {
+		StringBuilder result = new StringBuilder();
+		for (int k = 0; k < cols.size(); k++) {
+			result.append(cols.get(k).text());
+		    if (k + 1 != cols.size()) {
+		    	result.append(ConstantHelper.DELIMITER);
+		    }
+		}
+		if (!cols.isEmpty()) {
+			result.append(ConstantHelper.LINESEPARATOR);
+		}
 		return result.toString();
 	}
 
@@ -256,7 +303,15 @@ public class Main {
 			}
 		}
 		
-		// TODO voters from another area
+		// voters from another area
+		if (i == 3 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("Az átjelentkezett választópolgárok névjegyzékében és a mozgóurnát igénylõ átjelentkezett választópolgárok jegyzékében szereplõ választópolgárok száma")) {
+			SumOfVoters registratedVoterTable = new SumOfVoters();
+			String contentAsString = content.toString();
+			registratedVoterTable.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", "")));
+			registratedVoterTable.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].split(" ")[0]));
+
+			sumOfSubstantiveVotersFromAnotherAreaTables.put(filePath, registratedVoterTable);
+		}
 		
 		// merge with table 1 as it is the same as table 4 and 6
 		// TABLE 2: Egyéni szavazólapok 
@@ -313,9 +368,18 @@ public class Main {
 			}
 			sumOfListVotersTables.put(filePath, sumOfListVotersList);
 		}
+
+		// voters from another area
+		if (i == 8 && headerContent.toString().split(ConstantHelper.DELIMITER)[0].contains("Az átjelentkezett választópolgárok névjegyzékében és a mozgóurnát igénylõ átjelentkezett választópolgárok jegyzékében szereplõ választópolgárok száma")) {
+			SumOfVoters registratedVoterTable = new SumOfVoters();
+			String contentAsString = content.toString();
+			registratedVoterTable.setRegistratedVoters(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[0].replaceAll(" ", "")));
+			registratedVoterTable.setVoted(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[1].split(" ")[0]));
+			sumOfListVotersFromAnotherAreaTables.put(filePath, registratedVoterTable);
+		}
 		
 		// TABLE 5: Listás szavazatok
-		if (i == 8 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A pártlista neve")) {
+		if (i == 9 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A pártlista neve")) {
 			List<PartyVote> partyVoteList = new ArrayList<>();
 			String[] contentAsRows = content.toString().split("\\r?\\n");
 			for (String contentAsString : contentAsRows) {
@@ -328,7 +392,7 @@ public class Main {
 		}
 		
 		// TABLE 8: Nemzetiségi listák adatai
-		if (i == 9 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
+		if (i == 10 && headerContent.toString().split(ConstantHelper.DELIMITER)[1].contains("A névjegyzékben és a mozgóurnát igénylõ választópolgárok jegyzékében lévõ választópolgárok száma")) {
 			SumOfVoters sumOfListVoters = new SumOfVoters();
 			String[] contentAsRows = content.toString().split("\\r?\\n");
 			for (String contentAsString : contentAsRows) {
@@ -339,7 +403,7 @@ public class Main {
 					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
 					sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
 					sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
-					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll("-", "").replaceAll(System.getProperty("line.separator"), "")));
+					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll("-", "0").replaceAll(System.getProperty("line.separator"), "")));
 					sumOfGentilitialListVotersTables.put(filePath, sumOfListVoters);
 				}
 			}
@@ -445,25 +509,11 @@ public class Main {
 					sumOfListVoters.setNoStamper(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[3].replaceAll(" ", "")));
 					sumOfListVoters.setStamped(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[4].replaceAll(" ", "")));
 					sumOfListVoters.setInvalid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[6].replaceAll(" ", "").replaceAll("-", "0")));
-					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll("-", "").replaceAll(System.getProperty("line.separator"), "")));
+					sumOfListVoters.setValid(Integer.parseInt(contentAsString.split(ConstantHelper.DELIMITER)[7].replaceAll(" ", "").replaceAll("-", "0").replaceAll(System.getProperty("line.separator"), "")));
 					sumOfGentilitialListVotersTables.put(filePath, sumOfListVoters);
 				}
 			}
 		}
-	}
-
-	private static String getTableCols(Elements cols) {
-		StringBuilder result = new StringBuilder();
-		for (int k = 0; k < cols.size(); k++) {
-			result.append(cols.get(k).text());
-		    if (k + 1 != cols.size()) {
-		    	result.append(ConstantHelper.DELIMITER);
-		    }
-		}
-		if (!cols.isEmpty()) {
-			result.append(ConstantHelper.LINESEPARATOR);
-		}
-		return result.toString();
 	}
 
 }
